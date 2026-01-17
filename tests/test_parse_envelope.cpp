@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <span>
 #include <variant>
+#include <cstdio>
 
 namespace {
 
@@ -36,6 +37,7 @@ int main() {
     {
         std::array<std::byte, gateway::kMaxDatagramBytes + 1> payload{};
         if (!require_drop(payload, gateway::DropReason::PayloadTooLarge)) {
+            std::printf("Oversized payloan\n");
             return EXIT_FAILURE;
         }
     }
@@ -44,6 +46,7 @@ int main() {
     {
         std::array<std::byte, 1> payload{};
         if (!require_drop(payload, gateway::DropReason::PayloadTooSmall)) {
+            std::printf("payload to small test failed\n");
             return EXIT_FAILURE;
         }
     }
@@ -54,6 +57,7 @@ int main() {
         std::array<std::byte, 2 + 9> payload{};
         write_u16_be(std::span<std::byte>(payload).subspan(0, 2), 10);
         if (!require_drop(payload, gateway::DropReason::LengthMismatch)) {
+            std::printf("Length mismatch test failed\n");
             return EXIT_FAILURE;
         }
     }
@@ -64,6 +68,7 @@ int main() {
         std::array<std::byte, 2 + 10 + 1> payload{};
         write_u16_be(std::span<std::byte>(payload).subspan(0, 2), 10);
         if (!require_drop(payload, gateway::DropReason::TrailingJunk)) {
+            std::printf("Extra bytes test failed\n");
             return EXIT_FAILURE;
         }
     }
