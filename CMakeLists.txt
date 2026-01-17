@@ -7,14 +7,14 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Good hygiene for a security-ish C++ project
 add_library(gateway
-    src/placeholder.cpp
+    src/parse_envelope.cpp
 )
 target_include_directories(gateway PUBLIC include)
 target_compile_options(gateway PRIVATE -Wall -Wextra -Wpedantic)
 
 enable_testing()
 add_executable(gateway_tests
-    tests/placeholder_test.cpp
+    tests/test_parse_envelope.cpp
 )
 target_link_libraries(gateway_tests PRIVATE gateway)
 add_test(NAME gateway_tests COMMAND gateway_tests)
