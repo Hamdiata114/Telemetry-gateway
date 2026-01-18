@@ -24,6 +24,11 @@ void write_u16_be(std::span<std::byte> buf, std::uint16_t v) {
     buf[1] = std::byte(v & 0xFF);
 }
 
+const gateway::ParsedBody* get_body_if_success(const gateway::ParseResult& r) {
+    return std::get_if<gateway::ParsedBody>(&r);
+}
+
+
 // High-level: run one test and return true/false instead of exiting immediately.
 bool require_drop(std::span<const std::byte> payload, gateway::DropReason expected) {
     auto r = gateway::parse_envelope(payload);
@@ -68,10 +73,12 @@ int main() {
         std::array<std::byte, 2 + 10 + 1> payload{};
         write_u16_be(std::span<std::byte>(payload).subspan(0, 2), 10);
         if (!require_drop(payload, gateway::DropReason::TrailingJunk)) {
-            std::printf("Extra bytes test failed\n");
+            std::printf("Extra bytes  test failed\n");
             return EXIT_FAILURE;
         }
     }
+
+
 
     return EXIT_SUCCESS;
 }
