@@ -7,30 +7,30 @@
 
 namespace gateway {
 
-// Why: a finite taxonomy of "why we dropped" for tests/metrics.
+// TB-2 drop reasons: framing validation failures.
+// Note: Size enforcement (PayloadTooLarge) is handled at TB-1 (RecvLoop).
 enum class DropReason : std::uint8_t {
-    PayloadTooLarge,
-    PayloadTooSmall,
-    LengthMismatch,   // declared body_len doesn't match available bytes
+    PayloadTooSmall,  // < 2 bytes, can't read header
+    LengthMismatch,   // declared body_len > available bytes
     TrailingJunk      // extra bytes beyond declared body_len
 };
 
-// Why: on success we return a bounded *view* into the original payload.
+// On success we return a bounded *view* into the original payload.
 struct ParsedBody {
     std::span<const std::byte> body;
 };
 
-// Why: result is either success (ParsedBody) or failure (DropReason).
+// Result is either success (ParsedBody) or failure (DropReason).
 using ParseResult = std::variant<ParsedBody, DropReason>;
 
-// High-level contract:
-// - Takes untrusted bytes (payload)
-// - Enforces hard bounds and framing
+// TB-2: Envelope framing validation.
+//
+// Precondition: payload size already enforced by TB-1 (RecvLoop).
+//
+// Contract:
+// - Validates framing (2-byte length header + body)
 // - Never allocates, never throws
 // - Returns either a safe view of the body or a drop reason
 ParseResult parse_envelope(std::span<const std::byte> payload) noexcept;
-
-// Your global TB-1 cap (explicit, testable).
-inline constexpr std::size_t kMaxDatagramBytes = 1500;
 
 } // namespace gateway

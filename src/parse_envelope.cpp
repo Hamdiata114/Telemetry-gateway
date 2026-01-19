@@ -1,17 +1,12 @@
-
 #include "gateway/parse_envelope.hpp"
 
 #include <cstddef>   // std::byte, std::to_integer
 #include <cstdint>   // uint16_t
-#include <limits>    // std::numeric_limits
 
 namespace gateway {
 
 ParseResult parse_envelope(std::span<const std::byte> payload) noexcept {
-    // size > 1500 -> PayloadTooLarge
-    if (payload.size() > kMaxDatagramBytes) {
-        return DropReason::PayloadTooLarge;
-    }
+    // Precondition: size enforcement done at TB-1 (RecvLoop).
 
     // size < 2 -> PayloadTooSmall
     if (payload.size() < 2) {
