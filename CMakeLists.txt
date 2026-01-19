@@ -31,3 +31,8 @@ add_test(NAME test_bounded_queue COMMAND test_bounded_queue)
 add_executable(test_source_limiter tests/test_source_limiter.cpp)
 target_link_libraries(test_source_limiter PRIVATE gateway)
 add_test(NAME test_source_limiter COMMAND test_source_limiter)
+
+# Test: recv_loop (TB-1 enforcement)
+add_executable(test_recv_loop tests/test_recv_loop.cpp)
+target_link_libraries(test_recv_loop PRIVATE gateway)
+add_test(NAME test_recv_loop COMMAND test_recv_loop)

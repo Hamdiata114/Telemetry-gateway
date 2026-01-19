@@ -222,6 +222,181 @@ bool test_metrics() {
     return true;
 }
 
+bool test_clock_regression() {
+    // Test that clock going backward doesn't crash or cause negative tokens
+    FakeClock clock;
+    gateway::SourceLimiterConfig config{
+        .max_sources = 10,
+        .tokens_per_sec = 100,
+        .burst_tokens = 100
+    };
+    gateway::SourceLimiter limiter(config, clock.as_clock());
+    gateway::SourceKey src{.ip = 0x0A000001, .port = 1};
+
+    // Advance clock forward
+    clock.advance(std::chrono::seconds(1));
+    limiter.admit(src);  // Creates entry at t=1s
+
+    // Simulate clock going backward (time regression)
+    // This can happen with NTP adjustments or VM snapshots
+    clock.advance(std::chrono::seconds(-2));  // Now at t=-1s (before start)
+
+    // This should not crash or produce negative tokens
+    // The system should handle this gracefully
+    auto result = limiter.admit(src);
+
+    // Should still function (either Allow or Drop, but not crash)
+    // With negative elapsed time, tokens_to_add will be negative
+    // min(tokens + negative, burst) might reduce tokens, but should not crash
+    (void)result;  // We just care that it doesn't crash
+
+    // Verify the limiter is still functional
+    clock.advance(std::chrono::seconds(5));  // Move forward again
+    if (limiter.admit(src) != gateway::Admit::Allow) {
+        // After moving forward, we should have tokens again
+        std::printf("Clock regression: limiter non-functional after time jump\n");
+        return false;
+    }
+
+    return true;
+}
+
+bool test_hash_collision_handling() {
+    // Test that sources with different keys but potentially colliding hashes
+    // are handled correctly (each gets independent token bucket)
+    FakeClock clock;
+    gateway::SourceLimiterConfig config{
+        .max_sources = 1000,
+        .tokens_per_sec = 100,
+        .burst_tokens = 5  // Small burst for quick testing
+    };
+    gateway::SourceLimiter limiter(config, clock.as_clock());
+
+    // Create sources that might have hash collisions
+    // The hash function combines ip and port: (ip << 16) | port
+    // These are different but could stress the hash table
+    gateway::SourceKey src_a{.ip = 0x00000001, .port = 0x0001};
+    gateway::SourceKey src_b{.ip = 0x00000001, .port = 0x0002};
+    gateway::SourceKey src_c{.ip = 0x00010000, .port = 0x0001};
+    gateway::SourceKey src_d{.ip = 0xFFFFFFFF, .port = 0xFFFF};
+
+    // Each source should get independent 5-token budget
+    for (int i = 0; i < 5; ++i) {
+        if (limiter.admit(src_a) != gateway::Admit::Allow) return false;
+        if (limiter.admit(src_b) != gateway::Admit::Allow) return false;
+        if (limiter.admit(src_c) != gateway::Admit::Allow) return false;
+        if (limiter.admit(src_d) != gateway::Admit::Allow) return false;
+    }
+
+    // Now all should be exhausted independently
+    if (limiter.admit(src_a) != gateway::Admit::Drop) {
+        std::printf("src_a should be exhausted\n");
+        return false;
+    }
+    if (limiter.admit(src_b) != gateway::Admit::Drop) {
+        std::printf("src_b should be exhausted\n");
+        return false;
+    }
+    if (limiter.admit(src_c) != gateway::Admit::Drop) {
+        std::printf("src_c should be exhausted\n");
+        return false;
+    }
+    if (limiter.admit(src_d) != gateway::Admit::Drop) {
+        std::printf("src_d should be exhausted\n");
+        return false;
+    }
+
+    // All 4 sources should be tracked independently
+    if (limiter.tracked_count() != 4) {
+        std::printf("Expected 4 tracked sources, got %zu\n", limiter.tracked_count());
+        return false;
+    }
+
+    // 20 admits (4 sources x 5 each), 4 drops
+    if (limiter.total_admits() != 20) {
+        std::printf("Expected 20 admits, got %llu\n", limiter.total_admits());
+        return false;
+    }
+    if (limiter.total_drops() != 4) {
+        std::printf("Expected 4 drops, got %llu\n", limiter.total_drops());
+        return false;
+    }
+
+    return true;
+}
+
+bool test_fractional_token_accumulation() {
+    // Test that fractional time advancement correctly accumulates tokens
+    FakeClock clock;
+    gateway::SourceLimiterConfig config{
+        .max_sources = 10,
+        .tokens_per_sec = 100,  // 1 token per 10ms
+        .burst_tokens = 100
+    };
+    gateway::SourceLimiter limiter(config, clock.as_clock());
+    gateway::SourceKey src{.ip = 1, .port = 1};
+
+    // Exhaust all tokens
+    for (int i = 0; i < 100; ++i) {
+        limiter.admit(src);
+    }
+    if (limiter.admit(src) != gateway::Admit::Drop) {
+        return false;
+    }
+
+    // Advance 5ms (should give 0.5 tokens, not enough for 1)
+    clock.advance(std::chrono::milliseconds(5));
+    if (limiter.admit(src) != gateway::Admit::Drop) {
+        std::printf("Expected drop after 5ms (only 0.5 tokens)\n");
+        return false;
+    }
+
+    // Advance another 5ms (total 10ms = 1 token)
+    clock.advance(std::chrono::milliseconds(5));
+    if (limiter.admit(src) != gateway::Admit::Allow) {
+        std::printf("Expected allow after 10ms (1 token)\n");
+        return false;
+    }
+
+    return true;
+}
+
+bool test_boundary_source_keys() {
+    // Test SourceKey boundary values
+    FakeClock clock;
+    gateway::SourceLimiterConfig config{
+        .max_sources = 10,
+        .tokens_per_sec = 100,
+        .burst_tokens = 10
+    };
+    gateway::SourceLimiter limiter(config, clock.as_clock());
+
+    // Test boundary values for IP and port
+    gateway::SourceKey zero{.ip = 0, .port = 0};
+    gateway::SourceKey max_ip{.ip = 0xFFFFFFFF, .port = 0};
+    gateway::SourceKey max_port{.ip = 0, .port = 0xFFFF};
+    gateway::SourceKey all_max{.ip = 0xFFFFFFFF, .port = 0xFFFF};
+
+    // All should work and be tracked independently
+    if (limiter.admit(zero) != gateway::Admit::Allow) return false;
+    if (limiter.admit(max_ip) != gateway::Admit::Allow) return false;
+    if (limiter.admit(max_port) != gateway::Admit::Allow) return false;
+    if (limiter.admit(all_max) != gateway::Admit::Allow) return false;
+
+    if (limiter.tracked_count() != 4) {
+        std::printf("Expected 4 tracked sources for boundary keys\n");
+        return false;
+    }
+
+    // Each is independent
+    if (!limiter.is_tracked(zero)) return false;
+    if (!limiter.is_tracked(max_ip)) return false;
+    if (!limiter.is_tracked(max_port)) return false;
+    if (!limiter.is_tracked(all_max)) return false;
+
+    return true;
+}
+
 }  // namespace
 
 int main() {
@@ -257,6 +432,26 @@ int main() {
 
     if (!test_metrics()) {
         std::printf("test_metrics failed\n");
+        return EXIT_FAILURE;
+    }
+
+    if (!test_clock_regression()) {
+        std::printf("test_clock_regression failed\n");
+        return EXIT_FAILURE;
+    }
+
+    if (!test_hash_collision_handling()) {
+        std::printf("test_hash_collision_handling failed\n");
+        return EXIT_FAILURE;
+    }
+
+    if (!test_fractional_token_accumulation()) {
+        std::printf("test_fractional_token_accumulation failed\n");
+        return EXIT_FAILURE;
+    }
+
+    if (!test_boundary_source_keys()) {
+        std::printf("test_boundary_source_keys failed\n");
         return EXIT_FAILURE;
     }
 
