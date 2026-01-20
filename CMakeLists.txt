@@ -10,6 +10,9 @@ add_library(gateway
     src/parse_envelope.cpp
     src/parse_metrics.cpp
     src/parse_log.cpp
+    src/validate_config.cpp
+    src/validate_metrics.cpp
+    src/validate_log.cpp
     src/source_limiter.cpp
     src/recv_loop.cpp
 )
@@ -48,3 +51,13 @@ add_test(NAME test_parse_metrics COMMAND test_parse_metrics)
 add_executable(test_parse_log tests/test_parse_log.cpp)
 target_link_libraries(test_parse_log PRIVATE gateway)
 add_test(NAME test_parse_log COMMAND test_parse_log)
+
+# Test: validate_metrics (TB-4 metrics validation)
+add_executable(test_validate_metrics tests/test_validate_metrics.cpp)
+target_link_libraries(test_validate_metrics PRIVATE gateway)
+add_test(NAME test_validate_metrics COMMAND test_validate_metrics)
+
+# Test: validate_log (TB-4 log validation)
+add_executable(test_validate_log tests/test_validate_log.cpp)
+target_link_libraries(test_validate_log PRIVATE gateway)
+add_test(NAME test_validate_log COMMAND test_validate_log)

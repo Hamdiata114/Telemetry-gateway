@@ -10,7 +10,7 @@ trust boundaries, explicit invariants, bounded resource usage, and observable dr
 - Multi-datagram message reassembly
 - IP fragmentation reliance
 
-## Hard invariants (do not violate)
+## Hard invariants 
 - Never allocate memory based on attacker-controlled lengths (payload fields).
 - Parsing/validation code must be bounded: no unbounded loops over attacker-controlled structure.
 - Strict maximum datagram size (kMaxDatagramBytes). Oversized datagrams must be dropped early.
