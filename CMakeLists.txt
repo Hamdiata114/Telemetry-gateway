@@ -8,6 +8,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # Core gateway library
 add_library(gateway
     src/parse_envelope.cpp
+    src/parse_metrics.cpp
+    src/parse_log.cpp
     src/source_limiter.cpp
     src/recv_loop.cpp
 )
@@ -36,3 +38,13 @@ add_test(NAME test_source_limiter COMMAND test_source_limiter)
 add_executable(test_recv_loop tests/test_recv_loop.cpp)
 target_link_libraries(test_recv_loop PRIVATE gateway)
 add_test(NAME test_recv_loop COMMAND test_recv_loop)
+
+# Test: parse_metrics (TB-3 JSON metrics)
+add_executable(test_parse_metrics tests/test_parse_metrics.cpp)
+target_link_libraries(test_parse_metrics PRIVATE gateway)
+add_test(NAME test_parse_metrics COMMAND test_parse_metrics)
+
+# Test: parse_log (TB-3 logfmt logs)
+add_executable(test_parse_log tests/test_parse_log.cpp)
+target_link_libraries(test_parse_log PRIVATE gateway)
+add_test(NAME test_parse_log COMMAND test_parse_log)
