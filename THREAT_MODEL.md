@@ -8,9 +8,9 @@ This document describes the security threat model for the Telemetry Ingress Gate
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                              UNTRUSTED ZONE                                 │
 │                                                                             │
-│   ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐                       │
-│   │ Agent A │  │ Agent B │  │ Agent C │  │Attacker │                       │
-│   └────┬────┘  └────┬────┘  └────┬────┘  └────┬────┘                       │
+│   ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐                        │
+│   │ Agent A │  │ Agent B │  │ Agent C │  │Attacker │                        │
+│   └────┬────┘  └────┬────┘  └────┬────┘  └────┬────┘                        │
 │        │            │            │            │                             │
 │        └────────────┴─────┬──────┴────────────┘                             │
 │                           │ UDP                                             │
@@ -25,9 +25,9 @@ This document describes the security threat model for the Telemetry Ingress Gate
 ┌───────────────────────────────────────────────────────────────────────────┐
 │                          GATEWAY PROCESS                                  │
 │                                                                           │
-│  TB-1: Size Enforcement ──▶ TB-2: Framing ──▶ TB-3: Parsing ──▶          │
-│  TB-1.5: Rate Limiting                        TB-4: Validation ──▶       │
-│                                               TB-5: Forwarding ──▶ Sink  │
+│  TB-1: Size Enforcement ──▶ TB-2: Framing ──▶ TB-3: Parsing ──▶           │
+│  TB-1.5: Rate Limiting                        TB-4: Validation ──▶        │
+│                                               TB-5: Forwarding ──▶ Sink   │
 └───────────────────────────────────────────────────────────────────────────┘
                             │
                             ▼
