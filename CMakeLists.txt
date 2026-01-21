@@ -15,6 +15,7 @@ add_library(gateway
     src/validate_log.cpp
     src/source_limiter.cpp
     src/recv_loop.cpp
+    src/forwarder.cpp
 )
 target_include_directories(gateway PUBLIC include)
 target_compile_options(gateway PRIVATE -Wall -Wextra -Wpedantic)
@@ -61,3 +62,8 @@ add_test(NAME test_validate_metrics COMMAND test_validate_metrics)
 add_executable(test_validate_log tests/test_validate_log.cpp)
 target_link_libraries(test_validate_log PRIVATE gateway)
 add_test(NAME test_validate_log COMMAND test_validate_log)
+
+# Test: forwarder (TB-5 bounded forwarding with per-agent fairness)
+add_executable(test_forwarder tests/test_forwarder.cpp)
+target_link_libraries(test_forwarder PRIVATE gateway)
+add_test(NAME test_forwarder COMMAND test_forwarder)
