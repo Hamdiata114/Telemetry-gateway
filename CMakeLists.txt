@@ -67,3 +67,16 @@ add_test(NAME test_validate_log COMMAND test_validate_log)
 add_executable(test_forwarder tests/test_forwarder.cpp)
 target_link_libraries(test_forwarder PRIVATE gateway)
 add_test(NAME test_forwarder COMMAND test_forwarder)
+
+# ============================================================================
+# Demo executables
+# ============================================================================
+
+# Gateway server: Full end-to-end pipeline demo
+add_executable(gateway_server demos/gateway_server.cpp)
+target_link_libraries(gateway_server PRIVATE gateway)
+target_compile_options(gateway_server PRIVATE -Wall -Wextra -Wpedantic)
+
+# Traffic generator: Simulates agents sending telemetry
+add_executable(traffic_generator demos/traffic_generator.cpp)
+target_compile_options(traffic_generator PRIVATE -Wall -Wextra -Wpedantic)
