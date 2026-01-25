@@ -10,7 +10,7 @@ A high-performance UDP telemetry ingress gateway written in C++20, designed with
    (untrusted)      │                                                 │
         │           │  ┌─────────┐  ┌─────────┐  ┌─────────┐          │
         ▼           │  │  TB-1   │  │  TB-2   │  │  TB-3   │          │
-   ┌─────────┐      │  │  Recv   │─▶│Envelope │─▶│  JSON/  │         │
+   ┌─────────┐      │  │  Recv   │─▶│Envelope │─▶│  JSON/  │          │
    │ Network │─────▶│  │  Loop   │  │ Parse   │  │ Logfmt  │          │
    └─────────┘      │  └─────────┘  └─────────┘  └─────────┘          │
                     │       │                          │              │
